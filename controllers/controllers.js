@@ -22,26 +22,35 @@ exports.storeMahasiswa = (req, res) => {
     const jurusan = param.jurusan;
     const now = new Date();
 
-    const queryStr = "INSERT INTO mahasiswa (name, jurusan, createdAt) VALUES (?,?,?)";
-    const values = [name, jurusan, now]
+    if (!name || !jurusan) {
+        return res.status(400).json({
+            "success": false,
+            "message": "Nama dan Jurusan wajib diisi.",
+            "data": null
+        });
+    }
 
-    database.query(queryStr, values, (err, results)=>{
-        if(err) {
+    const queryStr = "INSERT INTO mahasiswa (name, jurusan, createdAt) VALUES (?,?,?)";
+    const values = [name, jurusan, now];
+
+    database.query(queryStr, values, (err, results) => {
+        if (err) {
             console.log(err);
             res.status(500).json({
                 "success": false,
                 "message": err.sqlMessage,
                 "data": null
-            })
+            });
         } else {
             res.status(200).json({
                 "success": true,
                 "message": "Sukses Menambahkan Data Mahasiswa",
                 "data": results
-            })
+            });
         }
-    })
+    });
 };
+
 
 exports.getMahasiswaById = (req, res) => {
     const param = req.query;
@@ -82,48 +91,130 @@ exports.updateMahasiswa = (req, res) => {
     const name = param.name;
     const jurusan = param.jurusan;
 
-    const queryStr = "UPDATE mahasiswa SET name = ?, jurusan = ? WHERE id = ? AND deletedAt IS NULL"
-    const values = [name, jurusan, id];
+    const checkQuery = "SELECT name, jurusan FROM mahasiswa WHERE id = ? AND deletedAt IS NULL";
+    const checkValues = [id];
 
-    database.query(queryStr, values, (err, results)=> {
-        if(err) {
+    database.query(checkQuery, checkValues, (err, results) => {
+        if (err) {
             console.log(err);
-            res.status(500).json({
+            return res.status(500).json({
                 "success": false,
                 "message": err.sqlMessage,
                 "data": null
-            })
-        } else {
-            res.status(200).json({
-                "success": true,
-                "message": "Sukses Mengupdate Data Mahasiswa",
-                "data": results
-            })
+            });
         }
-    })
+
+        if (results.length === 0) {
+            return res.status(404).json({
+                "success": false,
+                "message": "Mahasiswa dengan ID tersebut tidak ditemukan atau telah dihapus.",
+                "data": null
+            });
+        }
+
+        const currentName = results[0].name;
+        const currentJurusan = results[0].jurusan;
+
+        if (currentName === name && currentJurusan === jurusan) {
+            return res.status(200).json({
+                "success": true,
+                "message": "Data Sudah Sesuai",
+                "data": results
+            });
+        }
+
+        const queryStr = "UPDATE mahasiswa SET name = ?, jurusan = ? WHERE id = ? AND deletedAt IS NULL";
+        const values = [name, jurusan, id];
+
+        database.query(queryStr, values, (err, updateResults) => {
+            if (err) {
+                console.log(err);
+                return res.status(500).json({
+                    "success": false,
+                    "message": err.sqlMessage,
+                    "data": null
+                });
+            }
+
+            if (updateResults.affectedRows > 0) {
+                return res.status(200).json({
+                    "success": true,
+                    "message": "Sukses Mengupdate Data Mahasiswa",
+                    "data": updateResults
+                });
+            } else {
+                return res.status(404).json({
+                    "success": false,
+                    "message": "Data mahasiswa tidak ditemukan atau telah dihapus.",
+                    "data": null
+                });
+            }
+        });
+    });
 };
+
 
 exports.deleteMahasiswa = (req, res) => {
     const param = req.body;
     const id = param.id;
     const now = new Date();
 
-    const queryStr = "UPDATE mahasiswa SET deletedAt = ? WHERE id = ?"
-    const values = [now, id]
-    database.query(queryStr, values, (err, results) => {
-        if(err) {
+    if (!id) {
+        return res.status(400).json({
+            "success": false,
+            "message": "ID Tidak Terdaftar",
+            "data": null
+        });
+    }
+
+    const checkQuery = "SELECT id FROM mahasiswa WHERE id = ? AND deletedAt IS NULL";
+    const checkValues = [id];
+
+    database.query(checkQuery, checkValues, (err, results) => {
+        if (err) {
             console.log(err);
-            res.status(500).json({
+            return res.status(500).json({
                 "success": false,
                 "message": err.sqlMessage,
                 "data": null
-            })
-        } else {
-            res.status(200).json({
-                "success": true,
-                "message": "Sukses Menghapus Data Mahasiswa",
-                "data": results
-            })
+            });
         }
-    })
+
+        if (results.length === 0) {
+            return res.status(404).json({
+                "success": false,
+                "message": "ID Tidak Terdaftar",
+                "data": null
+            });
+        }
+
+        const queryStr = "UPDATE mahasiswa SET deletedAt = ? WHERE id = ?";
+        const values = [now, id];
+
+        database.query(queryStr, values, (err, updateResults) => {
+            if (err) {
+                console.log(err);
+                return res.status(500).json({
+                    "success": false,
+                    "message": err.sqlMessage,
+                    "data": null
+                });
+            }
+
+            if (updateResults.affectedRows > 0) {
+                return res.status(200).json({
+                    "success": true,
+                    "message": "Sukses Menghapus Data Mahasiswa",
+                    "data": updateResults
+                });
+            } else {
+                return res.status(404).json({
+                    "success": false,
+                    "message": "Data mahasiswa tidak ditemukan atau telah dihapus.",
+                    "data": null
+                });
+            }
+        });
+    });
 };
+
