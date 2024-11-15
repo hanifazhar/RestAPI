@@ -1,9 +1,12 @@
 const express = require('express');
 const database = require('./config/db');
+const cors = require('cors')
+
 
 const app = express();
 
 app.use(express.json());
+app.use(cors());
 
 app.get('/get-mahasiswa', function(req, res) {
     const queryStr = "SELECT * FROM mahasiswa WHERE deletedAt IS NULL"
@@ -64,11 +67,19 @@ app.get('/get-mahasiswa-by-id', function(req, res) {
                 "data": null
             })
         } else {
-            res.status(200).json({
-                "success": true,
-                "message": "Sukses Menambahkan Data Mahasiswa melalui ID",
-                "data": results
-            })
+            if (results.length > 0) {
+                res.status(200).json({
+                    "success": true,
+                    "message": "Sukses Menampilkan Data Mahasiswa melalui ID",
+                    "data": results
+                });
+            } else {
+                res.status(404).json({
+                    "success": false,
+                    "message": "Data mahasiswa tidak ditemukan atau telah dihapus.",
+                    "data": null
+                });
+            }
         }
     })
 })
