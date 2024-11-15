@@ -91,6 +91,14 @@ exports.updateMahasiswa = (req, res) => {
     const name = param.name;
     const jurusan = param.jurusan;
 
+    if (!name || !jurusan) {
+        return res.status(400).json({
+            "success": false,
+            "message": "Nama dan Jurusan tidak boleh kosong.",
+            "data": null
+        });
+    }
+
     const checkQuery = "SELECT name, jurusan FROM mahasiswa WHERE id = ? AND deletedAt IS NULL";
     const checkValues = [id];
 
@@ -152,7 +160,6 @@ exports.updateMahasiswa = (req, res) => {
         });
     });
 };
-
 
 exports.deleteMahasiswa = (req, res) => {
     const param = req.body;
